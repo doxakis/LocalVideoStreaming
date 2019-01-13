@@ -1,0 +1,32 @@
+﻿@model LocalVideoStreaming.Controllers.BrowseController.IndexModel
+
+@{
+	ViewData["Title"] = "Home Page";
+}
+
+<br />
+<br />
+
+<ul class="list-group">
+	@if (Model.Parent != null)
+	{
+		<li class="list-group-item">
+			<i class="glyphicon glyphicon-menu-left"></i>
+			@Html.ActionLink(Model.Parent.Shortname, "Index", "Browse", new { path = Model.Parent.Path })
+		</li>
+	}
+	@foreach (var folder in Model.Folders)
+	{
+		<li class="list-group-item">
+			<i class="glyphicon glyphicon-folder-close"></i>
+			@Html.ActionLink(folder.Shortname, "Index", "Browse", new { path = folder.Path })
+		</li>
+	}
+	@foreach (var file in Model.Video)
+	{
+		<li class="list-group-item">
+			<i class="glyphicon glyphicon-play"></i>
+			@Html.ActionLink(file.Shortname, "Index", "Player", new { path = file.Path })
+		</li>
+	}
+</ul>

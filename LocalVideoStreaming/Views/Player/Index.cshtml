@@ -1,0 +1,60 @@
+﻿@model LocalVideoStreaming.Controllers.PlayerController.VideoModel
+
+@{
+	ViewData["Title"] = "Home Page";
+}
+
+<br />
+
+<a href="@Url.Action("Index", "Browse", new { path = Model.Parent.Path })" class="btn btn-default btn-sm">
+	<i class="glyphicon glyphicon-menu-left"></i>
+	@Model.Parent.Shortname
+</a>
+
+<h1 class="text-center">@Model.Shortname</h1>
+
+<style>
+	video {
+		width: 100%;
+		height: auto;
+		max-height: 100%;
+	}
+</style>
+
+<video id="mainPlayer"
+	   autoplay="autoplay"
+	   controls="controls"
+	   onloadeddata="onLoad()"
+	   onclick="this.paused ? this.play() : this.pause();">
+	<source src="/player/stream/?path=@Model.Path" />
+</video>
+
+@if (Model.PreviousVideoPath != null)
+{
+	@Html.ActionLink("Previous", "Index", "Player", new { path = Model.PreviousVideoPath }, new { @class = "btn btn-default" })
+}
+@if (Model.NextVideoPath != null)
+{
+	@Html.ActionLink("Next", "Index", "Player", new { path = Model.NextVideoPath }, new { @class = "btn btn-default pull-right" })
+}
+
+@section Scripts {
+	<script>
+		var path = '@Model.Path';
+
+		function onLoad() {
+			var sec = parseInt(localStorage[path]);
+			if (!isNaN(sec) && sec !== 0) {
+				mainPlayer.currentTime = sec;
+				mainPlayer.play();
+			}
+			trackTime();
+		}
+
+		function trackTime() {
+			var sec = mainPlayer.currentTime | 0;
+			localStorage[path] = sec + "";
+			setTimeout(trackTime, 1000);
+		}
+	</script>
+}
