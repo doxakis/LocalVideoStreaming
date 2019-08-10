@@ -1,17 +1,22 @@
-﻿using LocalVideoStreaming.Helpers;
+﻿using LocalVideoStreaming.DAL;
+using LocalVideoStreaming.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace LocalVideoStreaming.Controllers
 {
 	public class PlayerController : Controller
     {
 		public IPathFilteringHelper PathFilteringHelper { get; }
+		public IRedisStorage RedisStorage { get; }
 
-		public PlayerController(IPathFilteringHelper pathFilteringHelper)
+		public PlayerController(IPathFilteringHelper pathFilteringHelper, IRedisStorage redisStorage)
 		{
 			PathFilteringHelper = pathFilteringHelper;
+			RedisStorage = redisStorage;
 		}
 
 		public class VideoModel
@@ -68,6 +73,41 @@ namespace LocalVideoStreaming.Controllers
 
 			var fileContentType = "application/octet-stream";
 			return File(System.IO.File.OpenRead(path), fileContentType, true);
+		}
+
+		public class NotifyTimeModel
+		{
+			public string Path { get; set; }
+			public int Sec { get; set; }
+			public TimeSpan? Expiry { get; internal set; }
+		}
+
+		public async Task<IActionResult> NotifyTime([FromBody] NotifyTimeModel form)
+		{
+			await RedisStorage.TrackVideoTimeAsync(new TrackTimeModel
+			{
+				Path = form.Path,
+				Sec = form.Sec
+			});
+			return Ok();
+		}
+
+		public async Task<IActionResult> History()
+		{
+			var list = await RedisStorage.GetListOfVideoTimeAsync();
+			var viewModel = list.Select(x => new NotifyTimeModel
+			{
+				Path = x.Path,
+				Sec = x.Sec
+			});
+			return View(viewModel);
+		}
+
+		public async Task<IActionResult> ClearHistory()
+		{
+			await RedisStorage.ClearListOfVideoTimeAsync();
+
+			return RedirectToAction("History");
 		}
 	}
 }

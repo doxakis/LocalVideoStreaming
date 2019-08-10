@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using LocalVideoStreaming.DAL;
 using LocalVideoStreaming.Helpers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -25,7 +26,8 @@ namespace LocalVideoStreaming
         {
 			services.AddSingleton(Configuration);
 			services.AddSingleton(typeof(IPathFilteringHelper), new PathFilteringHelper(Configuration));
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+			services.AddSingleton(typeof(IRedisStorage), new RedisStorage(Configuration));
+			services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)

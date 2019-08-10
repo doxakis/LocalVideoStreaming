@@ -1,0 +1,28 @@
+﻿@model IEnumerable<LocalVideoStreaming.Controllers.PlayerController.NotifyTimeModel>
+
+@{
+	ViewData["Title"] = "History";
+}
+
+<br />
+
+@if (Model.Any())
+{
+	<ul class="list-group">
+		@foreach (var file in Model)
+		{
+			<li class="list-group-item">
+				<i class="glyphicon glyphicon-play"></i>
+				@Html.ActionLink(file.Path + " - " + TimeSpan.FromSeconds(file.Sec), "Index", "Player", new { path = file.Path, sec = file.Sec })
+			</li>
+		}
+	</ul>
+
+	<a href="@Url.Action("ClearHistory", "Player")" class="btn btn-default">Clear history</a>
+}
+else
+{
+	@: No history yet.
+}
+
+

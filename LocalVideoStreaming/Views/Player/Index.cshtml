@@ -1,7 +1,7 @@
 ﻿@model LocalVideoStreaming.Controllers.PlayerController.VideoModel
 
 @{
-	ViewData["Title"] = "Home Page";
+	ViewData["Title"] = "Player";
 }
 
 <br />
@@ -21,12 +21,12 @@
 	}
 </style>
 
-<video id="mainPlayer"
+<video id="mainPlayer" data-path="@Model.Path"
 	   autoplay="autoplay"
 	   controls="controls"
 	   onloadeddata="onLoad()"
 	   onclick="this.paused ? this.play() : this.pause();">
-	<source src="/player/stream/?path=@Model.Path" />
+	<source id="source" src="/player/stream/?path=@Model.Path" />
 </video>
 
 @if (Model.PreviousVideoPath != null)
@@ -43,18 +43,49 @@
 		var path = '@Model.Path';
 
 		function onLoad() {
-			var sec = parseInt(localStorage[path]);
+			// Try to read time from query string.
+			const urlParams = new URLSearchParams(window.location.search);
+			const secParam = urlParams.get('sec');
+			if (secParam) {
+				setMainPlayerCurrentTime(secParam);
+			} else {
+				// Try to read time from localStorage.
+				var secFromLocalStorage = localStorage[path];
+				if (secFromLocalStorage) {
+					setMainPlayerCurrentTime(secFromLocalStorage);
+				}
+			}
+			
+			trackTime();
+		}
+
+		function setMainPlayerCurrentTime(secStr) {
+			var sec = parseInt(secStr);
 			if (!isNaN(sec) && sec !== 0) {
 				mainPlayer.currentTime = sec;
 				mainPlayer.play();
 			}
-			trackTime();
 		}
 
 		function trackTime() {
 			var sec = mainPlayer.currentTime | 0;
 			localStorage[path] = sec + "";
-			setTimeout(trackTime, 1000);
+
+			fetch('/Player/NotifyTime', {
+				method: 'POST',
+				headers: {
+					'Accept': 'application/json',
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					Path: mainPlayer.getAttribute("data-path"),
+					Sec: sec
+				})
+			}).then(function () {
+				setTimeout(trackTime, 1000);
+			}, function () {
+				setTimeout(trackTime, 1000);
+			});
 		}
 	</script>
 }
