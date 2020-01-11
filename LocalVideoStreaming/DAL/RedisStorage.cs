@@ -18,6 +18,7 @@ namespace LocalVideoStreaming.DAL
 
 	public interface IRedisStorage
 	{
+		bool IsAvailable();
 		Task TrackVideoTimeAsync(TrackTimeModel model);
 		Task<IEnumerable<TrackTimeModel>> GetListOfVideoTimeAsync();
 		Task ClearListOfVideoTimeAsync();
@@ -27,6 +28,7 @@ namespace LocalVideoStreaming.DAL
 	{
 		private const string RedisKeyPrefix = "videoTime_";
 		private const string RedisConnectionStringKey = "RedisConnectionString";
+		private const string RedisServerName = "RedisServerName";
 		private ConnectionMultiplexer _redis;
 
 		public IConfiguration Configuration { get; }
@@ -34,7 +36,30 @@ namespace LocalVideoStreaming.DAL
 		public RedisStorage(IConfiguration configuration)
 		{
 			Configuration = configuration;
-			_redis = ConnectionMultiplexer.Connect(Configuration.GetValue<string>(RedisConnectionStringKey));
+		}
+
+		public bool IsAvailable()
+		{
+			try
+			{
+				if (_redis == null)
+					_redis = ConnectionMultiplexer.Connect(Configuration.GetValue<string>(RedisConnectionStringKey));
+
+				// Test the connection.
+				_redis.GetDatabase().StringGet("test_connection");
+
+				return _redis.IsConnected;
+			}
+			catch (RedisException)
+			{
+				_redis = null; // force reconnect next time.
+				return false;
+			}
+			catch (RedisTimeoutException)
+			{
+				_redis = null; // force reconnect next time.
+				return false;
+			}
 		}
 
 		public Task TrackVideoTimeAsync(TrackTimeModel model)
@@ -45,7 +70,8 @@ namespace LocalVideoStreaming.DAL
 		public async Task<IEnumerable<TrackTimeModel>> GetListOfVideoTimeAsync()
 		{
 			var redisConnectionString = Configuration.GetValue<string>(RedisConnectionStringKey);
-			var keys = _redis.GetServer(redisConnectionString).Keys(pattern: RedisKeyPrefix + "*").Select(x => x.ToString());
+			var redisServerName = Configuration.GetValue<string>(RedisServerName);
+			var keys = _redis.GetServer(redisServerName).Keys(pattern: RedisKeyPrefix + "*").Select(x => x.ToString());
 
 			TrackTimeModel[] list;
 			int maxParallelOperation = 10;

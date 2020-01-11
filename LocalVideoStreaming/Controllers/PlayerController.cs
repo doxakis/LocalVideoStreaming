@@ -2,6 +2,7 @@
 using LocalVideoStreaming.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -84,30 +85,38 @@ namespace LocalVideoStreaming.Controllers
 
 		public async Task<IActionResult> NotifyTime([FromBody] NotifyTimeModel form)
 		{
-			await RedisStorage.TrackVideoTimeAsync(new TrackTimeModel
-			{
-				Path = form.Path,
-				Sec = form.Sec
-			});
+			if (RedisStorage.IsAvailable())
+				await RedisStorage.TrackVideoTimeAsync(Map(form));
+
 			return Ok();
 		}
 
 		public async Task<IActionResult> History()
 		{
-			var list = await RedisStorage.GetListOfVideoTimeAsync();
-			var viewModel = list.Select(x => new NotifyTimeModel
-			{
-				Path = x.Path,
-				Sec = x.Sec
-			});
-			return View(viewModel);
+			if (RedisStorage.IsAvailable())
+				return View((await RedisStorage.GetListOfVideoTimeAsync()).Select(x => Map(x)));
+
+			return View(new List<NotifyTimeModel>());
 		}
 
 		public async Task<IActionResult> ClearHistory()
 		{
-			await RedisStorage.ClearListOfVideoTimeAsync();
+			if (RedisStorage.IsAvailable())
+				await RedisStorage.ClearListOfVideoTimeAsync();
 
 			return RedirectToAction("History");
 		}
+
+		private static NotifyTimeModel Map(TrackTimeModel x) => new NotifyTimeModel
+		{
+			Path = x.Path,
+			Sec = x.Sec
+		};
+
+		private static TrackTimeModel Map(NotifyTimeModel form) => new TrackTimeModel
+		{
+			Path = form.Path,
+			Sec = form.Sec
+		};
 	}
 }
